@@ -31,5 +31,8 @@ https://developers.google.com/speed/pagespeed/insights/
 https://kudoyu.github.io/aaaaa/rs/1001011/recommend4.html
 という案はどうか。 <img> の onload で owlLazyloadCallback と同等の処理を行う。
 
-2.は簡単ではなさそう。画面サイズ（カルーセル要素の横幅）を取得するためにcssの読み込みを待つ必要がおそらくあり、画像のダウンロード開始が遅れる。
+2.は簡単ではなさそう。
+画面サイズ（カルーセル要素の横幅）を取得するためにcssの読み込みを待つ必要がおそらくあり、画像のダウンロード開始が遅れる。
+あるいは、「n番目の画像タグ」をjsで操作するのはDOMツリー構築（DOMContentLoaded）を待ってからが無難でそれにはcssとjsを待つ必要がある。
+（自信無し。識者の意見求ム）
 非lazyにする枚数＝想定する最小の画面サイズでの枚数、という設定で許してほしい。
