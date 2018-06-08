@@ -11,7 +11,11 @@
 (function(w,d){w.TLAB=[];var t=d.createElement('script');t.type='text/javascript';t.charset='utf-8';t.src='./js.recommend/tlab_v4_iframe.js';d.getElementsByTagName('head')[0].appendChild(t);})(window,document);
 // --></script>
 <script>
-function rc(e){e.parentElement.classList.remove('js-imgLoading');}
+function rc(e){
+  for(;e&&!e.classList.contains('js-imgLoading');)
+    e=e.parentElement;
+  e&&e.classList.remove('js-imgLoading');
+}
 </script>
 </head>
 <body>
