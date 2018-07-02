@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+	<meta charset="utf-8">
+	<title>iframeのloadイベントが発火されるタイミングの検証</title>
+	<style>
+	body {
+		background-color:#FFFF66;
+	}
+	</style>
+<script>
+console.log("parent2: init");
+document.addEventListener("DOMContentLoaded", function() {
+	console.log("parent2: DOMContentLoaded");
+});
+window.addEventListener('load', function() {
+	console.log('parent2: load');
+});
+function func(){
+	console.log("parent2: iframe load");
+}
+</script>
+</head>
+<body>
+	<header>
+		<h1>iframeのloadイベントが発火されるタイミングの検証</h1>
+	</header>
+	<div style="border:2px solid black">
+		<iframe src="iframe2.html" onload="func()"></iframe>
+	</div>
+</body>
+</html>

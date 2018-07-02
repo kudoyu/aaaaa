@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+	<meta charset="utf-8">
+	<title>iframe1</title>
+</head>
+<script>
+console.log("iframe1: init");
+document.addEventListener('DOMContentLoaded', function() {
+	console.log('iframe1: DOMContentLoaded');
+});
+window.addEventListener('load', function() {
+	console.log('iframe1: load');
+});
+</script>
+<body>
+	<header>
+		<h1>iframe1</h1>
+	</header>
+	<div>
+		<p>iframe1</p>
+	</div>
+</body>
+</html>

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="ja">
+	<head>
+		<meta charset="utf-8">
+		<title>iframeのloadイベントが発火されるタイミングの検証</title>
+	</head>
+	<body>
+		<header>
+			<h1>iframeのloadイベントが発火されるタイミングの検証</h1>
+		</header>
+		<div>
+			<p><a href="parent1.html">parent1.html</a></p>
+			<p><a href="parent2.html">parent2.html</a></p>
+		</div>
+		<div>
+検証結果： iframe.onload が発火されるのは、 iframe の中身の load イベントを待ってから、となる。
+<pre>
+parent1: init
+parent1: DOMContentLoaded
+iframe1: init
+iframe1: DOMContentLoaded
+iframe1: load
+parent1: iframe load
+parent1: load
+</pre>
+<pre>
+parent2: init
+parent2: DOMContentLoaded
+iframe2: init
+iframe2: DOMContentLoaded
+iframe2: load
+parent2: iframe load
+parent2: load
+</pre>
+		</div>
+	</body>
+</html>
