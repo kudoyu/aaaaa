@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+	<meta charset="utf-8">
+	<title>iframeのloadイベントが発火されるタイミングの検証</title>
+	<style>
+	body {
+		background-color:#FFFF66;
+	}
+	</style>
+<script>
+function func(){
+	console.log("parent4: iframe load");
+}
+console.log("parent4: init");
+document.addEventListener("DOMContentLoaded", function() {
+	console.log("parent4: DOMContentLoaded");
+});
+window.addEventListener('load', function() {
+	console.log('parent4: load');
+	var t=document.createElement('iframe');
+	t.src='iframe4.html';
+	t.addEventListener("load", func);
+	document.getElementById("iframe-wrapper").appendChild(t);
+});
+</script>
+</head>
+<body>
+	<header>
+		<h1>iframeのloadイベントが発火されるタイミングの検証</h1>
+	</header>
+	<div style="border:2px solid black" id="iframe-wrapper">
+	</div>
+</body>
+</html>
