@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$']]}});
+</script>
+<script type="text/javascript" async
+	src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS_CHTML">
+	
+</script>
+
+</head>
+<body>
+	<div>
+		<h4>The Quadratic Formula</h4>
+
+		\[x = {-b \pm \sqrt{b^2-4ac} \over 2a}.\]
+
+		<h4>Cauchy's Integral Formula</h4>
+
+		\[f(a) = \frac{1}{2\pi i} \oint\frac{f(z)}{z-a}dz\]
+		<h4>Double angle formula for Cosines</h4>
+
+		\[ \cos(θ+φ)=\cos(θ)\cos(φ)−\sin(θ)\sin(φ) \]
+
+		<h4>Gauss' Divergence Theorem</h4>
+		\[ \int_D ({\nabla\cdot} F)dV=\int_{\partial D} F\cdot ndS \]
+
+		<h5>Curl of a Vector Field</h5>
+
+		\[ \vec{\nabla} \times \vec{F} = \left( \frac{\partial F_z}{\partial
+		y} - \frac{\partial F_y}{\partial z} \right) \mathbf{i} + \left(
+		\frac{\partial F_x}{\partial z} - \frac{\partial F_z}{\partial x}
+		\right) \mathbf{j} + \left( \frac{\partial F_y}{\partial x} -
+		\frac{\partial F_x}{\partial y} \right) \mathbf{k} \]
+
+		<h4>Standard Deviation</h4>
+		\[\sigma = \sqrt{ \frac{1}{N} \sum_{i=1}^N (x_i -\mu)^2} \]
+
+		<h4>Definition of Christoffel Symbols</h4>
+		\[(\nabla_X Y)^k = X^i (\nabla_i Y)^k = X^i \left( \frac{\partial
+		Y^k}{\partial x^i} + \Gamma_{im}^k Y^m \right)\] <a href="#to-samples"
+			aria-label="Close pop-out" class="card--popout__close"></a>
+	</div>
+	
+	<div>
+	<h1>クロネッカー積とクロネッカー羃</h1>
+$n\times m$ 行列 $A$ と任意のサイズの行列 $B$ のクロネッカー積を
+$$
+A\otimes B :=
+\begin{bmatrix}
+A_{11}B&A_{12}B&\dotsb&A_{1m}B\\
+\vdots&\vdots&\dotsb&\vdots\\
+A_{n1}B&A_{n2}B&\dotsb&A_{nm}B\\
+\end{bmatrix}
+$$
+と定義する。また、$A^{\otimes n} := \underbrace{A\otimes \dotsm \otimes A}_{n \text{ times}}$と定義する。
+	</div>
+</body>
+</html>
