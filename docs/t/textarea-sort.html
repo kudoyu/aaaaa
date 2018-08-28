@@ -1,7 +1,28 @@
-<html>
-
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<script>
+function run(){
+	var input_str = document.querySelector("#a").value;
+	var lines = input_str.split("\n");
+	lines.sort();
+	document.querySelector("#b").value = lines.join("\n");
+}
+</script>
+</head>
 <body>
-aaa
-</body>
 
+<div>
+<textarea id="a" rows="12" cols="80" placeholder="ここに入力してボタンを押してください"></textarea>
+</div>
+<div>
+<input type="button" onclick="run()" value="ソートする" />
+</div>
+
+<div>
+<textarea id="b" rows="12" cols="80" placeholder="ここに結果が出力されます"></textarea>
+</div>
+
+</body>
 </html>
