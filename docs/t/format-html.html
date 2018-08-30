@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<script>
+function run(){
+	var s = document.querySelector("#a").value;
+	s = s.trim();
+	s = s.replace(/[\r\n]/g, '');
+	s = s.replace(/>\s+</g, '><');
+	s = s.replace(/>\s*(\S+)\s*</g, '>$1<');
+	s = s.replace(/>/g, '>\n');
+	document.querySelector("#b").value = s;
+}
+</script>
+</head>
+<body>
+
+<div>
+<textarea id="a" rows="12" cols="80" placeholder="ここに入力してボタンを押してください"></textarea>
+</div>
+<div>
+<input type="button" onclick="run()" value="適当に整形する" />
+</div>
+
+<div>
+<textarea id="b" rows="12" cols="80" placeholder="ここに結果が出力されます"></textarea>
+</div>
+
+</body>
+</html>
