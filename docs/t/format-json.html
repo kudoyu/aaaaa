@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<script>
+function run(){
+	var spaceLevel = parseInt(document.querySelector("#level").value);
+	
+	var s = document.querySelector("#a").value;
+	
+	try {
+		if (document.querySelector("#ch_str").checked) {
+			s = eval(s);
+		}
+		obj = JSON.parse(s);
+		s = JSON.stringify(obj, null, spaceLevel);
+	} catch (e) {
+		s = "syntax error:\n" + e;
+	}
+	document.querySelector("#b").value = s;
+}
+</script>
+</head>
+<body>
+
+<div>
+<textarea id="a" rows="12" cols="80" placeholder="ここに入力してボタンを押してください"></textarea>
+</div>
+<div>
+<ul>
+<li><label for="level">インデント幅</label><input type="number" name="level" id="level" value="4" style="width:2em"></li>
+<li><input type="checkbox" name="ch_str" id="ch_str" ><label for="ch_str">入力文字列をeval()する（JSONエスケープを戻すのに使えます）</label></li>
+</ul>
+<input type="button" onclick="run()" value="適当に整形する" />
+</div>
+
+<div>
+<textarea id="b" rows="12" cols="80" placeholder="ここに結果が出力されます"></textarea>
+</div>
+
+<div>
+サンプル１
+<textarea>{
+    "glossary": {
+        "title": "example glossary",
+		"GlossDiv": {
+            "title": "S",
+			"GlossList": {
+                "GlossEntry": {
+                    "ID": "SGML",
+					"SortAs": "SGML",
+					"GlossTerm": "Standard Generalized Markup Language",
+					"Acronym": "SGML",
+					"Abbrev": "ISO 8879:1986",
+					"GlossDef": {
+                        "para": "A meta-markup language, used to create markup languages such as DocBook.",
+						"GlossSeeAlso": ["GML", "XML"]
+                    },
+					"GlossSee": "markup"
+                }
+            }
+        }
+    }
+}</textarea>
+</div>
+
+<div>
+サンプル２（JSONエスケープを戻す）
+<textarea>
+"{\"data\":{\"request_identityId\":\"ap-northeast-1:95ee2e37-f868-459a-b446-15f346ba2e4b\",\"request_deviceId\":\"device005\",\"request_deviceOs\":\"iOS\",\"request_deviceToken\":\"\"},\"requestList\":[{\"id\":\"first\",\"endpointRequestParam\":{\"deviceOs\":[\"iOS\"],\"identityId\":[\"ap-northeast-1:95ee2e37-f868-459a-b446-15f346ba2e4b\"],\"deviceId\":[\"device005\"]},\"endpointRequestHeader\":{\"Content-Type\":\"application/json\"},\"response\":\"_firstresponse_\",\"responseString\":\"_firstresponse_\"},{\"id\":\"findUser0\",\"endpointKey\":\"findUser\",\"endpointRequestParam\":{\"identityId\":[\"ap-northeast-1:95ee2e37-f868-459a-b446-15f346ba2e4b\"]},\"endpointRequestHeader\":{}}],\"lastExecutedOffset\":0}"
+</textarea>
+</div>
+
+</body>
+</html>
