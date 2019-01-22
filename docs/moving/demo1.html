@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>vis</title>
+<script src="https://threejs.org/build/three.js"></script>
+<script src="https://threejs.org/examples/js/controls/OrbitControls.js"></script>
+<script src="https://threejs.org/examples/js/renderers/CSS2DRenderer.js"></script>
+
+<script>
+function shuffle(array) {
+  var currentIndex = array.length, temporaryValue, randomIndex;
+
+  // While there remain elements to shuffle...
+  while (0 !== currentIndex) {
+
+    // Pick a remaining element...
+    randomIndex = Math.floor(Math.random() * currentIndex);
+    currentIndex -= 1;
+
+    // And swap it with the current element.
+    temporaryValue = array[currentIndex];
+    array[currentIndex] = array[randomIndex];
+    array[randomIndex] = temporaryValue;
+  }
+
+  return array;
+}
+</script>
+
+<script>
+
+// ページの読み込みを待つ
+window.addEventListener('load', init);
+
+function init() {
+  // サイズを指定
+  const width = 960;
+  const height = 540;
+
+  // レンダラーを作成
+  const renderer = new THREE.WebGLRenderer({
+    canvas: document.querySelector('#myCanvas')
+  });
+  renderer.setPixelRatio(window.devicePixelRatio);
+  renderer.setSize(width, height);
+
+  const span = 1000; // ビーム発射機の間隔
+  const offset_bottom = 2000; // 最低のビーム発射機の高さ
+  const offset_top = span / 2; // 側面の最高のビーム発射機から天井ビーム発射機までの高さ
+
+  // シーンを作成
+  const scene = new THREE.Scene();
+
+  // ========================
+  // 平行光源
+  const directionalLight = new THREE.DirectionalLight(0xFFFFFF, 1.0);
+  directionalLight.position.set(1, 1, 1);
+  directionalLight.target.position.set(0, 0, 0);
+  scene.add(directionalLight);
+  // 環境光源
+  const ambientLight = new THREE.AmbientLight(0xFFFFFF, 1.0); // new THREE.AmbientLight(色, 光の強さ)
+  scene.add(ambientLight);
+  // ========================
+
+  // ========================
+  // 座標軸
+  const axis = new THREE.AxesHelper(1600);
+  axis.position.y += 10;
+  scene.add(axis);
+  // 地面
+  const ground = new THREE.Mesh(  
+    new THREE.PlaneGeometry( 20000, 20000, 20, 20 ),
+    new THREE.MeshBasicMaterial( { color: 0x333333, wireframe:true } )
+  );
+  ground.rotation.x = -Math.PI / 2;
+  scene.add(ground);
+  // ========================
+
+  const material_cylinder = new THREE.MeshPhongMaterial({
+    color: 0xDDDDDD,
+    opacity: 0.12,
+    transparent: true
+  });
+
+  // 上面半径,下面半径,高さ,円周分割数
+  const cylinder = new THREE.Mesh(                                     
+    new THREE.CylinderGeometry(20, 20, 400, 3),
+    material_cylinder        
+  );
+  cylinder.position.y += 500;
+  scene.add(cylinder);    
+
+
+  const create_beams = function() {
+    res = [];
+    const material = new THREE.MeshBasicMaterial( {color: 0x22FF44} );
+
+    const wall = span * 4;
+
+    let ps = [];
+    // 側面
+    for (let k = 0; k < 5; k++) {
+      let y = offset_bottom + k * span;
+      for (let i = -4; i < 4; i++) {
+        let x = span/2 + i * span;
+        ps.push( [x, y,  wall] );
+        ps.push( [x, y, -wall] );
+      }
+      for (let j = -4; j < 4; j++) {
+        let z = span/2 + j * span;
+        ps.push( [ wall, y, z] );
+        ps.push( [-wall, y, z] );
+      }
+    }
+    // 天井
+    for (let i = -4; i < 4; i++) {
+      for (let j = -4; j < 4; j++) {
+        let x = span/2 + i * span;
+        let y = offset_bottom + (5-1) * span + offset_top;
+        let z = span/2 + j * span;
+        ps.push( [x, y, z] );
+      }
+    }
+    shuffle(ps);
+
+    for (let p of ps) {
+      const cube = new THREE.Mesh( new THREE.BoxGeometry( 50, 50, 50 ), material );
+      cube.position.x = p[0];
+      cube.position.y = p[1];
+      cube.position.z = p[2];
+      scene.add( cube );
+
+      const geometry = new THREE.CylinderGeometry(20, 20, 1, 12);
+      const cylinder = new THREE.Mesh( geometry, material_cylinder );
+      cylinder.visible = false;
+      scene.add(cylinder);
+
+      res.push({
+        "base": cube,
+        "lay": cylinder,
+        "pointTo": function(v, penetrate=false) {
+          const v1 = cube.position;
+          const v2 = v;
+          const direction = new THREE.Vector3().subVectors( v2, v1 );
+          if (penetrate) { direction.multiplyScalar(5); } // TODO ちゃんと壁に当たるまでにする
+          const new_geometry = new THREE.CylinderGeometry(20, 20, direction.length(), 12);
+          cylinder.position.set( (v1.x+v2.x)/2, (v1.y+v2.y)/2, (v1.z+v2.z)/2 );
+          cylinder.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), direction.normalize());
+          cylinder.geometry.dispose();
+          cylinder.geometry = new_geometry;
+        }
+      });
+    }
+    return res;
+  };
+
+  const beams = create_beams();
+
+  for (let beam of beams) {
+    beam.pointTo(new THREE.Vector3(1200, 2500, -1500));
+    beam.lay.visible = true;
+  }
+
+  // カメラを作成
+  const camera = new THREE.PerspectiveCamera(45, width / height, 50, 1000000);
+
+
+  camera.position.set(2500, 1650, 2500);
+
+  const controls = new THREE.OrbitControls(camera);
+  controls.target.set(0, 2500, 0);
+  controls.update();
+
+  let t = 0;
+  
+  const pointTo0 = function(t) {
+    return new THREE.Vector3(
+      1000 * Math.sin(t / (60 * 3) * Math.PI * 2),
+      3000 + 1000 * Math.cos(t / (60*3) * Math.PI * 2),
+      1000 * Math.cos(t / (60 * 3) * Math.PI * 2),
+    );
+  };
+
+
+  cylinder.rotation.x = 0.5;
+
+  // 毎フレーム時に実行されるループイベントです
+  function tick() {
+    ++t;
+
+    // const cameraLookAt = new THREE.Vector3(
+      // camera.position.x + Math.cos(t2 * Math.PI/180) * Math.cos(t1 * Math.PI/180), 
+      // 10000000 + camera.position.y + Math.sin(Math.abs(t2) * Math.PI/180),
+      // camera.position.z + Math.cos(t2 * Math.PI/180) * Math.sin(t1 * Math.PI/180)
+    // );
+    // camera.lookAt(cameraLookAt);
+
+    // camera.rotation.z += 0.1;
+    renderer.render(scene, camera); // レンダリング
+
+    // cylinder.rotation.y += 0.02;
+    cylinder.rotation.z += 0.01;
+
+    const pointTo = pointTo0(t);
+    for (let i = 0; i < beams.length; i++) {
+      let beam = beams[i];
+      beam.lay.visible = false;
+      if (i % 4 == 0) {
+        beam.pointTo(pointTo0(t), true);
+        beam.lay.visible = true;
+      } 
+    }
+
+
+    requestAnimationFrame(tick);
+  }
+  tick();
+
+}
+
+</script>
+</head>
+<body>
+
+<div id="drawArea">
+    <canvas id="myCanvas"></canvas>
+</div>
+</body>
+</html>
