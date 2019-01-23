@@ -163,8 +163,6 @@ function init() {
 
   // カメラを作成
   const camera = new THREE.PerspectiveCamera(45, width / height, 50, 1000000);
-
-
   camera.position.set(2500, 1650, 2500);
 
   const controls = new THREE.OrbitControls(camera);
@@ -172,15 +170,13 @@ function init() {
   controls.update();
 
   let t = 0;
-  
-  const pointTo0 = function(t) {
-    return new THREE.Vector3(
-      1000 * Math.sin(t / (60 * 3) * Math.PI * 2),
-      3000 + 1000 * Math.cos(t / (60*3) * Math.PI * 2),
-      1000 * Math.cos(t / (60 * 3) * Math.PI * 2),
-    );
-  };
 
+  let fs = [
+    function(t) { return new THREE.Vector3(-1000, 4000, 2000); },
+    function(t) { return new THREE.Vector3(1000, 5000, -1000); },
+    function(t) { return new THREE.Vector3(2000, 3000, 0); },
+    function(t) { return new THREE.Vector3(0000, 6000, 1000); },
+  ];
 
   cylinder.rotation.x = 0.5;
 
@@ -201,16 +197,11 @@ function init() {
     // cylinder.rotation.y += 0.02;
     cylinder.rotation.z += 0.01;
 
-    const pointTo = pointTo0(t);
     for (let i = 0; i < beams.length; i++) {
       let beam = beams[i];
-      beam.lay.visible = false;
-      if (i % 4 == 0) {
-        beam.pointTo(pointTo0(t), true);
-        beam.lay.visible = true;
-      } 
+      beam.pointTo(fs[i % 4](t), true);
+      beam.lay.visible = true;
     }
-
 
     requestAnimationFrame(tick);
   }

@@ -5,6 +5,7 @@
 <title>vis</title>
 <script src="https://threejs.org/build/three.js"></script>
 <script src="https://threejs.org/examples/js/controls/OrbitControls.js"></script>
+<script src="./mincost_maxflow.js"></script>
 
 <script>
 function shuffle(array) {
@@ -70,7 +71,8 @@ function init() {
   // 地面
   const ground = new THREE.Mesh(  
     new THREE.PlaneGeometry( 20000, 20000, 20, 20 ),
-    new THREE.MeshBasicMaterial( { color: 0x333333, wireframe:true } )
+    // new THREE.MeshBasicMaterial( { color: 0x333333, wireframe:true } )
+    new THREE.MeshBasicMaterial( { color: 0x33DD33, wireframe:true } )
   );
   ground.rotation.x = -Math.PI / 2;
   scene.add(ground);
@@ -96,6 +98,7 @@ function init() {
     const material = new THREE.MeshBasicMaterial( {color: 0x22FF44} );
 
     const wall = span * 4;
+    const y_max = offset_bottom + (5-1) * span + offset_top;
 
     let ps = [];
     // 側面
@@ -116,7 +119,7 @@ function init() {
     for (let i = -4; i < 4; i++) {
       for (let j = -4; j < 4; j++) {
         let x = span/2 + i * span;
-        let y = offset_bottom + (5-1) * span + offset_top;
+        let y = y_max;
         let z = span/2 + j * span;
         ps.push( [x, y, z] );
       }
@@ -138,11 +141,34 @@ function init() {
       res.push({
         "base": cube,
         "lay": cylinder,
-        "pointTo": function(v, penetrate=false) {
+        "pointTo": function(target, penetrate=false) {
           const v1 = cube.position;
-          const v2 = v;
+          let v2 = target.clone();
           const direction = new THREE.Vector3().subVectors( v2, v1 );
-          if (penetrate) { direction.multiplyScalar(5); } // TODO ちゃんと壁に当たるまでにする
+          if (penetrate) {
+            // サボって二分探索。もっと速いやりかたありそう。
+
+            // 描画する範囲は、 
+            // x: [-wall, wall]
+            // y: [0, y_max]
+            // z: [-wall, wall]
+
+            function isin(vec) {
+              return -wall <= vec.x && vec.x <= wall  &&
+                         0 <= vec.y && vec.y <= y_max &&
+                     -wall <= vec.z && vec.z <= wall;
+            }
+
+            let hi = 100;
+            let lo = 0.1;
+            for (let iter = 0; iter < 40; iter++) {
+              let mid = (hi + lo) / 2;
+              v2 = new THREE.Vector3().addVectors(v1, direction.clone().multiplyScalar(mid));
+              if (isin(v2)) lo = mid; 
+              else hi = mid;
+            }
+            direction.multiplyScalar(lo);
+          }
           const new_geometry = new THREE.CylinderGeometry(20, 20, direction.length(), 12);
           cylinder.position.set( (v1.x+v2.x)/2, (v1.y+v2.y)/2, (v1.z+v2.z)/2 );
           cylinder.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), direction.normalize());
@@ -157,36 +183,88 @@ function init() {
   const beams = create_beams();
 
   for (let beam of beams) {
-    beam.pointTo(new THREE.Vector3(1200, 2500, -1500));
-    beam.lay.visible = true;
+    beam.lay.visible = false;
   }
 
   // カメラを作成
   const camera = new THREE.PerspectiveCamera(45, width / height, 50, 1000000);
-
-
   camera.position.set(2500, 1650, 2500);
 
   const controls = new THREE.OrbitControls(camera);
   controls.target.set(0, 2500, 0);
   controls.update();
 
-  let t = 0;
-  
-  const pointTo0 = function(t) {
-    return new THREE.Vector3(
-      1000 * Math.sin(t / (60 * 3) * Math.PI * 2),
-      3000 + 1000 * Math.cos(t / (60*3) * Math.PI * 2),
-      1000 * Math.cos(t / (60 * 3) * Math.PI * 2),
-    );
-  };
+  let frame_count = 0;
 
+  // なんか描画
+  const display_geometry = new THREE.BoxGeometry( 2000, 2000, 2000 );
+  // OctahedronGeometry
+  // const display_geometry = new THREE.TetrahedronGeometry( 2000 );
+  const display_mesh = new THREE.Mesh( display_geometry, new THREE.MeshNormalMaterial() );
+  display_mesh.position.set(0, 3500, 0);
+  display_mesh.visible = false; // デバッグ用
+  scene.add(display_mesh);
+
+  const P = display_geometry.vertices.length; // 描画する点の数
+
+  let fs = [];
+  for (let i = 0; i < P; i++) {
+    fs.push(function(t) {
+      let v = display_mesh.geometry.vertices[i].clone();
+      display_mesh.localToWorld(v);
+      return v;
+    });
+  }
 
   cylinder.rotation.x = 0.5;
 
+  function updateBeam(frames) {
+
+    let targets = [];
+    for (let j = 0; j < fs.length; j++)
+      targets.push(fs[j](frames));
+
+    let s = new Node("s");
+    let t = new Node("t");
+    let b = [];
+    for (let i = 0; i < beams.length; i++) {
+      b.push(new Node("b" + i));
+    }
+    let p = [];
+    for (let i = 0; i < targets.length; i++) {
+      p.push(new Node("p" + i));
+    }
+
+    b.forEach((v) => s.addEdge(v, 1, 0));
+    p.forEach((v) => v.addEdge(t, 0 | Math.ceil(b.length / p.length), 0));
+    for (let j = 0; j < targets.length; j++) {
+      for (let i = 0; i < beams.length; i++) {
+        let dist = targets[j].distanceTo(beams[i].base.position);
+        b[i].addEdge(p[j], 1, dist);
+      }
+    }
+
+    let g = [s, t];
+    g = g.concat(p);
+    g = g.concat(b);
+    let result = mincost_maxflow(g, s, t);
+    // console.log(result);
+
+    b.forEach((v, i)=>{
+      v.es.forEach((e) =>{
+        if (e.rev.cap > 0) {
+          let j = parseInt(e.to.id.substring(1), 10);
+          // console.log(i, j);
+          beams[i].pointTo(targets[j], true);
+          beams[i].lay.visible = true;
+        }
+      });
+    });
+
+  }
+
   // 毎フレーム時に実行されるループイベントです
   function tick() {
-    ++t;
 
     // const cameraLookAt = new THREE.Vector3(
       // camera.position.x + Math.cos(t2 * Math.PI/180) * Math.cos(t1 * Math.PI/180), 
@@ -201,17 +279,12 @@ function init() {
     // cylinder.rotation.y += 0.02;
     cylinder.rotation.z += 0.01;
 
-    const pointTo = pointTo0(t);
-    for (let i = 0; i < beams.length; i++) {
-      let beam = beams[i];
-      beam.lay.visible = false;
-      if (i % 4 == 0) {
-        beam.pointTo(pointTo0(t), true);
-        beam.lay.visible = true;
-      } 
-    }
+    display_mesh.rotation.x += 0.005;
+    display_mesh.rotation.y += 0.010;
+    display_mesh.rotation.z += 0.015;
+    updateBeam();
 
-
+    ++frame_count;
     requestAnimationFrame(tick);
   }
   tick();
