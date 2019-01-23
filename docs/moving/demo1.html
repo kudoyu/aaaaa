@@ -137,7 +137,7 @@ function init() {
 
       res.push({
         "base": cube,
-        "lay": cylinder,
+        "ray": cylinder,
         "pointTo": function(v, penetrate=false) {
           const v1 = cube.position;
           const v2 = v;
@@ -158,7 +158,7 @@ function init() {
 
   for (let beam of beams) {
     beam.pointTo(new THREE.Vector3(1200, 2500, -1500));
-    beam.lay.visible = true;
+    beam.ray.visible = true;
   }
 
   // カメラを作成
@@ -204,10 +204,10 @@ function init() {
     const pointTo = pointTo0(t);
     for (let i = 0; i < beams.length; i++) {
       let beam = beams[i];
-      beam.lay.visible = false;
+      beam.ray.visible = false;
       if (i % 4 == 0) {
         beam.pointTo(pointTo0(t), true);
-        beam.lay.visible = true;
+        beam.ray.visible = true;
       } 
     }
 

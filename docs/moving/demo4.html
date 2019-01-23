@@ -90,6 +90,7 @@ function init() {
     material_cylinder        
   );
   cylinder.position.y += 500;
+  cylinder.rotation.x = 0.5;
   scene.add(cylinder);    
 
 
@@ -141,7 +142,7 @@ function init() {
       res.push({
         "base": cube,
         "ray": cylinder,
-        "pointTo": function(target, penetrate=false) {
+        "pointTo": function(target, penetrate=true) {
           const v1 = cube.position;
           let v2 = target.clone();
           const direction = new THREE.Vector3().subVectors( v2, v1 );
@@ -197,15 +198,17 @@ function init() {
   let frame_count = 0;
 
   // なんか描画
-  const display_geometry = new THREE.BoxGeometry( 2000, 2000, 2000 );
-  // OctahedronGeometry
-  // const display_geometry = new THREE.TetrahedronGeometry( 2000 );
+  // const display_geometry = new THREE.BoxGeometry( 1500, 1500, 1500 );
+  // const display_geometry = new THREE.BoxGeometry( 1500, 1500, 1500, 2, 2, 2 );
+  const display_geometry = new THREE.OctahedronGeometry( 1000 );
+  // const display_geometry = new THREE.TetrahedronGeometry( 1200 );
   const display_mesh = new THREE.Mesh( display_geometry, new THREE.MeshNormalMaterial() );
   display_mesh.position.set(0, 3500, 0);
   display_mesh.visible = false; // デバッグ用
   scene.add(display_mesh);
 
   const P = display_geometry.vertices.length; // 描画する点の数
+  console.log(P);
 
   let fs = [];
   for (let i = 0; i < P; i++) {
@@ -216,7 +219,62 @@ function init() {
     });
   }
 
-  cylinder.rotation.x = 0.5;
+  // origin から target への光線が、物体の内部に入るかどうかをチェック
+  function calcIsPointable(obj, origin, target) {
+
+    // visible にしないと衝突判定してくれないので一時的に true にする
+    const visible_save = obj.visible;
+    obj.visible = true;
+
+    const result = (function() {
+      // v1 から v2 へと v2 から v1 への直線で raycast を計算し、
+      // v1 と v2 を結ぶ直線と物体との交点を調べる。
+      // 交差しない、または、v2 に近い一点だけと交差する場合は OK
+      // 浮動小数点なので微妙にずれるので気を付ける。
+      const v1 = origin.clone();
+      const v2 = target.clone();
+
+      {
+        const dir = new THREE.Vector3().subVectors(v2, v1);
+        const raycaster = new THREE.Raycaster(v1, dir.normalize());
+        
+        const intersection = raycaster.intersectObjects( [obj] );
+        if (intersection.length === 0) {
+          // 交差しないなら OK 
+          // target はこの obj の頂点なのでこういうケースは無いはすだが、
+          // 光線がかすめる場合に誤差によって少しずれるとこうなる。
+          return true;
+        }
+
+        for (let i = 0; i < intersection.length; i++) {
+          // 交点が、target に十分近いなら OK
+          // そうじゃない場合は別の位置で物体に衝突している
+          if (v2.distanceTo(intersection[i].point) > 10) {
+            return false;
+          }
+        }
+      }
+      {
+        // v1 を v2 を挟んで反対側の遠い点に移動
+        v1.add(new THREE.Vector3().subVectors(v2, v1).multiplyScalar(100));
+        const dir = new THREE.Vector3().subVectors(v2, v1);
+        const raycaster = new THREE.Raycaster(v1, dir.normalize());
+        const intersection = raycaster.intersectObjects( [obj] );
+        for (let i = 0; i < intersection.length; i++) {
+          // 交点が、target に十分近いなら OK
+          // そうじゃない場合は別の位置で物体に衝突している
+          if (v2.distanceTo(intersection[i].point) > 10) {
+            return false;
+          }
+        }
+      }
+      // それ以外はOK
+      return true;
+    })();
+
+    obj.visible = visible_save;
+    return result;
+  }
 
   function updateBeam(frames) {
 
@@ -239,8 +297,12 @@ function init() {
     p.forEach((v) => v.addEdge(t, 0 | Math.ceil(b.length / p.length), 0));
     for (let j = 0; j < targets.length; j++) {
       for (let i = 0; i < beams.length; i++) {
-        let dist = targets[j].distanceTo(beams[i].base.position);
-        b[i].addEdge(p[j], 1, dist);
+        let isPointable = calcIsPointable(display_mesh, beams[i].base.position, targets[j]);
+        // 光線が物体の内部に入らない場合だけ打つ
+        if (isPointable) {
+          let dist = targets[j].distanceTo(beams[i].base.position);
+          b[i].addEdge(p[j], 1, dist);
+        }
       }
     }
 
@@ -252,12 +314,17 @@ function init() {
 
     b.forEach((v, i)=>{
       v.es.forEach((e) =>{
+        let cnt = 0;
         if (e.rev.cap > 0) {
-          let j = parseInt(e.to.id.substring(1), 10);
-          // console.log(i, j);
-          beams[i].pointTo(targets[j], true);
-          beams[i].ray.visible = true;
+          // console.log(i, e.to.id);
+          if (e.to.id[0] === 'p') {
+            cnt += 1;
+            let j = parseInt(e.to.id.substring(1), 10);
+            beams[i].pointTo(targets[j], true);
+            beams[i].ray.visible = true;
+          }
         }
+        if (cnt >= 2) { console.log("bug", cnt); }
       });
     });
 
@@ -279,10 +346,12 @@ function init() {
     // cylinder.rotation.y += 0.02;
     cylinder.rotation.z += 0.01;
 
-    display_mesh.rotation.x += 0.005;
-    display_mesh.rotation.y += 0.010;
-    display_mesh.rotation.z += 0.015;
-    updateBeam();
+    if (frame_count <= 50) {
+      display_mesh.rotation.x += 0.005;
+      display_mesh.rotation.y += 0.010;
+      display_mesh.rotation.z += 0.015;
+      updateBeam();
+    }
 
     ++frame_count;
     requestAnimationFrame(tick);
