@@ -313,6 +313,7 @@ function init() {
     // console.log(result);
 
     b.forEach((v, i)=>{
+      beams[i].ray.visible = false;
       v.es.forEach((e) =>{
         let cnt = 0;
         if (e.rev.cap > 0) {
