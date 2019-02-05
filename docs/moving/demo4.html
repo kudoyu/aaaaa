@@ -162,7 +162,7 @@ function init() {
 
             let hi = 100;
             let lo = 0.1;
-            for (let iter = 0; iter < 40; iter++) {
+            for (let iter = 0; iter < 10; iter++) {
               let mid = (hi + lo) / 2;
               v2 = new THREE.Vector3().addVectors(v1, direction.clone().multiplyScalar(mid));
               if (isin(v2)) lo = mid; 
@@ -200,8 +200,8 @@ function init() {
   // なんか描画
   // const display_geometry = new THREE.BoxGeometry( 1500, 1500, 1500 );
   // const display_geometry = new THREE.BoxGeometry( 1500, 1500, 1500, 2, 2, 2 );
-  const display_geometry = new THREE.OctahedronGeometry( 1000 );
-  // const display_geometry = new THREE.TetrahedronGeometry( 1200 );
+  // const display_geometry = new THREE.OctahedronGeometry( 1000 );
+  const display_geometry = new THREE.TetrahedronGeometry( 1200 );
   const display_mesh = new THREE.Mesh( display_geometry, new THREE.MeshNormalMaterial() );
   display_mesh.position.set(0, 3500, 0);
   display_mesh.visible = false; // デバッグ用
@@ -346,7 +346,7 @@ function init() {
     // cylinder.rotation.y += 0.02;
     cylinder.rotation.z += 0.01;
 
-    if (frame_count <= 50) {
+    if (frame_count <= 100) {
       display_mesh.rotation.x += 0.005;
       display_mesh.rotation.y += 0.010;
       display_mesh.rotation.z += 0.015;
