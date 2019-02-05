@@ -294,7 +294,7 @@ function init() {
     }
 
     b.forEach((v) => s.addEdge(v, 1, 0));
-    p.forEach((v) => v.addEdge(t, 0 | Math.ceil(b.length / p.length), 0));
+    p.forEach((v) => v.addEdge(t, 0 | Math.ceil(b.length / p.length), 0) / 4);
     for (let j = 0; j < targets.length; j++) {
       for (let i = 0; i < beams.length; i++) {
         // let isPointable = calcIsPointable(display_mesh, beams[i].base.position, targets[j]);
@@ -305,18 +305,26 @@ function init() {
         // }
         
         // 光線と辺の向きの差をスコアにしてみる
-        let dist = 1e18;
+        let dist = 99999999;
         const ray = new THREE.Vector3().subVectors( targets[j], beams[i].base.position );
         display_mesh.geometry.faces.forEach((face) => {
           const a = targets[face.a];
           const b = targets[face.b];
           const c = targets[face.c];
-          const ab = Math.sin(ray.angleTo(new THREE.Vector3().subVectors(a, b)));
-          const bc = Math.sin(ray.angleTo(new THREE.Vector3().subVectors(b, c)));
-          const ca = Math.sin(ray.angleTo(new THREE.Vector3().subVectors(c, a)));
-          const m = Math.min(ab, Math.min(bc, ca));
-          dist = Math.min(dist, m);
+          if (face.a == j || face.b == j) {
+            const ab = Math.abs(Math.sin(ray.angleTo(new THREE.Vector3().subVectors(a, b))));
+            dist = Math.min(dist, ab);
+          }
+          if (face.b == j || face.c == j) {
+            const bc = Math.abs(Math.sin(ray.angleTo(new THREE.Vector3().subVectors(b, c))));
+            dist = Math.min(dist, bc);
+          }
+          if (face.c == j || face.a == j) {
+            const ca = Math.abs(Math.sin(ray.angleTo(new THREE.Vector3().subVectors(c, a))));
+            dist = Math.min(dist, ca);
+          }
         });
+        // if (dist < 0.5) // ある程度近い光線だけ採用
         b[i].addEdge(p[j], 1, dist);
       }
     }
@@ -328,6 +336,7 @@ function init() {
     // console.log(result);
 
     b.forEach((v, i)=>{
+      beams[i].ray.visible = false;
       v.es.forEach((e) =>{
         let cnt = 0;
         if (e.rev.cap > 0) {
