@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>vis</title>
+<script src="https://threejs.org/build/three.js"></script>
+<script src="https://threejs.org/examples/js/controls/OrbitControls.js"></script>
+<script src="./mincost_maxflow.js"></script>
+
+<script>
+function shuffle(array) {
+  var currentIndex = array.length, temporaryValue, randomIndex;
+
+  // While there remain elements to shuffle...
+  while (0 !== currentIndex) {
+
+    // Pick a remaining element...
+    randomIndex = Math.floor(Math.random() * currentIndex);
+    currentIndex -= 1;
+
+    // And swap it with the current element.
+    temporaryValue = array[currentIndex];
+    array[currentIndex] = array[randomIndex];
+    array[randomIndex] = temporaryValue;
+  }
+
+  return array;
+}
+</script>
+
+<script>
+
+// ページの読み込みを待つ
+window.addEventListener('load', init);
+
+function init() {
+  // サイズを指定
+  const width = 960;
+  const height = 540;
+
+  // レンダラーを作成
+  const renderer = new THREE.WebGLRenderer({
+    canvas: document.querySelector('#myCanvas')
+  });
+  renderer.setPixelRatio(window.devicePixelRatio);
+  renderer.setSize(width, height);
+
+  const span = 1000; // ビーム発射機の間隔
+  const offset_bottom = 2000; // 最低のビーム発射機の高さ
+  const offset_top = span / 2; // 側面の最高のビーム発射機から天井ビーム発射機までの高さ
+
+  // シーンを作成
+  const scene = new THREE.Scene();
+
+  // ========================
+  // 平行光源
+  const directionalLight = new THREE.DirectionalLight(0xFFFFFF, 1.0);
+  directionalLight.position.set(1, 1, 1);
+  directionalLight.target.position.set(0, 0, 0);
+  scene.add(directionalLight);
+  // 環境光源
+  const ambientLight = new THREE.AmbientLight(0xFFFFFF, 1.0); // new THREE.AmbientLight(色, 光の強さ)
+  scene.add(ambientLight);
+  // ========================
+
+  // ========================
+  // 座標軸
+  const axis = new THREE.AxesHelper(1600);
+  axis.position.y += 10;
+  scene.add(axis);
+  // 地面
+  const ground = new THREE.Mesh(  
+    new THREE.PlaneGeometry( 20000, 20000, 20, 20 ),
+    // new THREE.MeshBasicMaterial( { color: 0x333333, wireframe:true } )
+    new THREE.MeshBasicMaterial( { color: 0x33DD33, wireframe:true } )
+  );
+  ground.rotation.x = -Math.PI / 2;
+  scene.add(ground);
+  // ========================
+
+  const material_cylinder = new THREE.MeshPhongMaterial({
+    color: 0xDDDDDD,
+    opacity: 0.12,
+    transparent: true
+  });
+
+  // 上面半径,下面半径,高さ,円周分割数
+  const cylinder = new THREE.Mesh(                                     
+    new THREE.CylinderGeometry(20, 20, 400, 3),
+    material_cylinder        
+  );
+  cylinder.position.y += 500;
+  cylinder.rotation.x = 0.5;
+  scene.add(cylinder);    
+
+
+  const create_beams = function() {
+    res = [];
+    const material = new THREE.MeshBasicMaterial( {color: 0x22FF44} );
+
+    const wall = span * 4;
+    const y_max = offset_bottom + (5-1) * span + offset_top;
+
+    let ps = [];
+    // 側面
+    for (let k = 0; k < 5; k++) {
+      let y = offset_bottom + k * span;
+      for (let i = -4; i < 4; i++) {
+        let x = span/2 + i * span;
+        ps.push( [x, y,  wall] );
+        ps.push( [x, y, -wall] );
+      }
+      for (let j = -4; j < 4; j++) {
+        let z = span/2 + j * span;
+        ps.push( [ wall, y, z] );
+        ps.push( [-wall, y, z] );
+      }
+    }
+    // 天井
+    for (let i = -4; i < 4; i++) {
+      for (let j = -4; j < 4; j++) {
+        let x = span/2 + i * span;
+        let y = y_max;
+        let z = span/2 + j * span;
+        ps.push( [x, y, z] );
+      }
+    }
+    shuffle(ps);
+
+    for (let p of ps) {
+      const cube = new THREE.Mesh( new THREE.BoxGeometry( 50, 50, 50 ), material );
+      cube.position.x = p[0];
+      cube.position.y = p[1];
+      cube.position.z = p[2];
+      scene.add( cube );
+
+      const geometry = new THREE.CylinderGeometry(20, 20, 1, 12);
+      const cylinder = new THREE.Mesh( geometry, material_cylinder );
+      cylinder.visible = false;
+      scene.add(cylinder);
+
+      res.push({
+        "base": cube,
+        "ray": cylinder,
+        "pointTo": function(target, penetrate=true) {
+          const v1 = cube.position;
+          let v2 = target.clone();
+          const direction = new THREE.Vector3().subVectors( v2, v1 );
+          if (penetrate) {
+            // サボって二分探索。もっと速いやりかたありそう。
+
+            // 描画する範囲は、 
+            // x: [-wall, wall]
+            // y: [0, y_max]
+            // z: [-wall, wall]
+
+            function isin(vec) {
+              return -wall <= vec.x && vec.x <= wall  &&
+                         0 <= vec.y && vec.y <= y_max &&
+                     -wall <= vec.z && vec.z <= wall;
+            }
+
+            let hi = 100;
+            let lo = 0.1;
+            for (let iter = 0; iter < 10; iter++) {
+              let mid = (hi + lo) / 2;
+              v2 = new THREE.Vector3().addVectors(v1, direction.clone().multiplyScalar(mid));
+              if (isin(v2)) lo = mid; 
+              else hi = mid;
+            }
+            direction.multiplyScalar(lo);
+          }
+          const new_geometry = new THREE.CylinderGeometry(20, 20, direction.length(), 12);
+          cylinder.position.set( (v1.x+v2.x)/2, (v1.y+v2.y)/2, (v1.z+v2.z)/2 );
+          cylinder.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), direction.normalize());
+          cylinder.geometry.dispose();
+          cylinder.geometry = new_geometry;
+        }
+      });
+    }
+    return res;
+  };
+
+  const beams = create_beams();
+
+  for (let beam of beams) {
+    beam.ray.visible = false;
+  }
+
+  // カメラを作成
+  const camera = new THREE.PerspectiveCamera(45, width / height, 50, 1000000);
+  camera.position.set(2500, 1650, 2500);
+
+  const controls = new THREE.OrbitControls(camera);
+  controls.target.set(0, 2500, 0);
+  controls.update();
+
+  let frame_count = 0;
+
+  // なんか描画
+  // const display_geometry = new THREE.BoxGeometry( 1500, 1500, 1500 );
+  // const display_geometry = new THREE.BoxGeometry( 1500, 1500, 1500, 2, 2, 2 );
+  // const display_geometry = new THREE.OctahedronGeometry( 1000 );
+  const display_geometry = new THREE.TetrahedronGeometry( 1200 );
+  const display_mesh = new THREE.Mesh( display_geometry, new THREE.MeshNormalMaterial() );
+  display_mesh.position.set(0, 3500, 0);
+  display_mesh.visible = false; // デバッグ用
+  scene.add(display_mesh);
+
+  const P = display_geometry.vertices.length; // 描画する点の数
+  console.log(P);
+
+  let fs = [];
+  for (let i = 0; i < P; i++) {
+    fs.push(function(t) {
+      let v = display_mesh.geometry.vertices[i].clone();
+      display_mesh.localToWorld(v);
+      return v;
+    });
+  }
+
+  // origin から target への光線が、物体の内部に入るかどうかをチェック
+  function calcIsPointable(obj, origin, target) {
+
+    // visible にしないと衝突判定してくれないので一時的に true にする
+    const visible_save = obj.visible;
+    obj.visible = true;
+
+    const result = (function() {
+      // v1 から v2 へと v2 から v1 への直線で raycast を計算し、
+      // v1 と v2 を結ぶ直線と物体との交点を調べる。
+      // 交差しない、または、v2 に近い一点だけと交差する場合は OK
+      // 浮動小数点なので微妙にずれるので気を付ける。
+      const v1 = origin.clone();
+      const v2 = target.clone();
+
+      {
+        const dir = new THREE.Vector3().subVectors(v2, v1);
+        const raycaster = new THREE.Raycaster(v1, dir.normalize());
+        
+        const intersection = raycaster.intersectObjects( [obj] );
+        if (intersection.length === 0) {
+          // 交差しないなら OK 
+          // target はこの obj の頂点なのでこういうケースは無いはすだが、
+          // 光線がかすめる場合に誤差によって少しずれるとこうなる。
+          return true;
+        }
+
+        for (let i = 0; i < intersection.length; i++) {
+          // 交点が、target に十分近いなら OK
+          // そうじゃない場合は別の位置で物体に衝突している
+          if (v2.distanceTo(intersection[i].point) > 10) {
+            return false;
+          }
+        }
+      }
+      {
+        // v1 を v2 を挟んで反対側の遠い点に移動
+        v1.add(new THREE.Vector3().subVectors(v2, v1).multiplyScalar(100));
+        const dir = new THREE.Vector3().subVectors(v2, v1);
+        const raycaster = new THREE.Raycaster(v1, dir.normalize());
+        const intersection = raycaster.intersectObjects( [obj] );
+        for (let i = 0; i < intersection.length; i++) {
+          // 交点が、target に十分近いなら OK
+          // そうじゃない場合は別の位置で物体に衝突している
+          if (v2.distanceTo(intersection[i].point) > 10) {
+            return false;
+          }
+        }
+      }
+      // それ以外はOK
+      return true;
+    })();
+
+    obj.visible = visible_save;
+    return result;
+  }
+
+  function updateBeam(frames) {
+
+    let targets = [];
+    for (let j = 0; j < fs.length; j++)
+      targets.push(fs[j](frames));
+
+    let s = new Node("s");
+    let t = new Node("t");
+    let b = [];
+    for (let i = 0; i < beams.length; i++) {
+      b.push(new Node("b" + i));
+    }
+    let p = [];
+    for (let i = 0; i < targets.length; i++) {
+      p.push(new Node("p" + i));
+    }
+
+    b.forEach((v) => s.addEdge(v, 1, 0));
+    // p.forEach((v) => v.addEdge(t, 0 | Math.ceil(b.length / p.length), 0));
+    p.forEach((v) => v.addEdge(t, 10, 0)); // ある頂点を狙うのは最大で 10 機。
+    for (let j = 0; j < targets.length; j++) {
+      for (let i = 0; i < beams.length; i++) {
+        // let isPointable = calcIsPointable(display_mesh, beams[i].base.position, targets[j]);
+        // 光線が物体の内部に入らない場合だけ打つ
+        // if (isPointable) {
+          // let dist = targets[j].distanceTo(beams[i].base.position);
+          // b[i].addEdge(p[j], 1, dist);
+        // }
+        
+        // 光線と辺の向きの差をスコアにしてみる
+        let dist = 99999999;
+        const ray = new THREE.Vector3().subVectors( targets[j], beams[i].base.position );
+        display_mesh.geometry.faces.forEach((face) => {
+          const a = targets[face.a];
+          const b = targets[face.b];
+          const c = targets[face.c];
+          if (face.a == j || face.b == j) {
+            const ab = Math.abs(Math.sin(ray.angleTo(new THREE.Vector3().subVectors(a, b))));
+            dist = Math.min(dist, ab);
+          }
+          if (face.b == j || face.c == j) {
+            const bc = Math.abs(Math.sin(ray.angleTo(new THREE.Vector3().subVectors(b, c))));
+            dist = Math.min(dist, bc);
+          }
+          if (face.c == j || face.a == j) {
+            const ca = Math.abs(Math.sin(ray.angleTo(new THREE.Vector3().subVectors(c, a))));
+            dist = Math.min(dist, ca);
+          }
+        });
+        if (dist < Math.sin(15 * Math.PI / 180)) // ある程度近い光線だけ採用
+          b[i].addEdge(p[j], 1, dist);
+      }
+    }
+
+    let g = [s, t];
+    g = g.concat(p);
+    g = g.concat(b);
+    let result = mincost_maxflow(g, s, t);
+    // console.log(result);
+
+    b.forEach((v, i)=>{
+      beams[i].ray.visible = false;
+      v.es.forEach((e) =>{
+        let cnt = 0;
+        if (e.rev.cap > 0) {
+          // console.log(i, e.to.id);
+          if (e.to.id[0] === 'p') {
+            cnt += 1;
+            let j = parseInt(e.to.id.substring(1), 10);
+            beams[i].pointTo(targets[j], true);
+            beams[i].ray.visible = true;
+          }
+        }
+        if (cnt >= 2) { console.log("bug", cnt); }
+      });
+    });
+
+  }
+
+  // 毎フレーム時に実行されるループイベントです
+  function tick() {
+
+    // const cameraLookAt = new THREE.Vector3(
+      // camera.position.x + Math.cos(t2 * Math.PI/180) * Math.cos(t1 * Math.PI/180), 
+      // 10000000 + camera.position.y + Math.sin(Math.abs(t2) * Math.PI/180),
+      // camera.position.z + Math.cos(t2 * Math.PI/180) * Math.sin(t1 * Math.PI/180)
+    // );
+    // camera.lookAt(cameraLookAt);
+
+    // camera.rotation.z += 0.1;
+    renderer.render(scene, camera); // レンダリング
+
+    // cylinder.rotation.y += 0.02;
+    cylinder.rotation.z += 0.01;
+
+    if (frame_count <= 100) {
+      display_mesh.rotation.x += 0.005;
+      display_mesh.rotation.y += 0.010;
+      display_mesh.rotation.z += 0.015;
+      updateBeam();
+    }
+
+    ++frame_count;
+    requestAnimationFrame(tick);
+  }
+  tick();
+
+}
+
+</script>
+</head>
+<body>
+
+<div id="drawArea">
+    <canvas id="myCanvas"></canvas>
+</div>
+</body>
+</html>
