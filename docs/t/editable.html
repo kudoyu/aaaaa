@@ -5,7 +5,7 @@
     <title>E</title>
     <style>
       .reading-area {
-        margin: 5px;
+        margin: 35px 5px 5px 5px;
         padding: 5px;
         width: 30em;
         height: auto;
@@ -13,11 +13,29 @@
         background-color: #ccffcc;
         font-family: 'Linux Libertine','Georgia','Times',serif;
       }
+      .invisible {
+        display: none;
+      }
     </style>
+    <script>
+    function handleOnClick(){
+      const elem = document.getElementById('a');
+      if (elem.attributes.contenteditable) {
+        elem.removeAttribute('contenteditable');
+      } else {
+        elem.setAttribute('contenteditable', true);
+      }
+      document.getElementById('b').classList.toggle('invisible');
+    }
+    </script>
   </head>
   <body>
     <div>
-      <p class="reading-area" contenteditable="true"></p>
+      <p id="a" class="reading-area" contenteditable="true" ></p>
+    </div>
+    <div>
+      <input type="button" onclick="handleOnClick()" value="toggle editability" />
+      <span id="b">[editable]</span>
     </div>
   </body>
 </html>
