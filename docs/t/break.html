@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8">
+    <title>破砕</title>
+    <style>
+      body {
+        background-color: #ccffcc;
+      }
+      .touhaba {
+        font-size: large;
+        font-family: 'Consolas', 'monospace';
+      }
+      .panel {
+        width: auto;
+        border: 1px black solid;
+      }
+      textarea {
+        margin: 5px;
+        padding: 5px;
+      }
+      #flex-container {
+        display: flex;
+        flex-direction: row;
+      }
+      #flex-container > .flex-item {
+        border: 1px black solid;
+        flex: 1 1;
+      }
+    </style>
+    <script>
+    function clearIt(){
+      document.getElementById('b').value = '';
+    }
+    function handleOnClick(){
+      let text = document.getElementById('a').value;
+      if (document.getElementById('chk_comma').checked) { text = text.replace(/,/g, ',\n'); }
+      if (document.getElementById('chk_semicolon').checked) { text = text.replace(/;/g, ';\n'); }
+      if (document.getElementById('chk_paren').checked) { text = text.replace(/([(){}[\]<>])/g, '$1\n'); }
+      if (document.getElementById('chk_spaces').checked) { text = text.replace(/( +)/g, '$1\n'); }
+      document.getElementById('b').value = text;
+    }
+    </script>
+  </head>
+  <body>
+    <div>
+      <textarea id="a" class="touhaba" rows="6" cols="80" onkeydown="clearIt()"></textarea>
+    </div>
+    <div>
+      <p>テキストの特定の記号の後ろに改行を入れる。minifyされたjsやSQL文としてダンプしたDBデータなどのdiffを取る前処理に使う</p>
+      <div class="panel">
+        <div id="flex-container">
+          <div class="flex-item">
+            <div><input type="checkbox" id="chk_comma" checked>,</input></div>
+            <div><input type="checkbox" id="chk_semicolon" checked>;</input></div>
+            <div><input type="checkbox" id="chk_paren">(){}[]<></input></div>
+            <div><input type="checkbox" id="chk_spaces">SPACE+</input></div>
+          </div>
+          <div class="flex-item">
+            <input type="button" onclick="handleOnClick()" value="Replace"></input>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div>
+      <textarea id="b" class="touhaba" rows="6" cols="80" ></textarea>
+    </div>
+  </body>
+</html>
