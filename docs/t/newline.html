@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<script>
+function run(){
+	var input_str = document.querySelector("#a").value;
+  var s = input_str.replace(/\\r\\n|\\r|\\n/g, "\n");
+	document.querySelector("#b").value = s;
+}
+</script>
+</head>
+<body>
+<p>
+エスケープされた改行文字を元に戻します。
+</p>
+<div>
+<textarea id="a" rows="12" cols="80" placeholder="ここに入力してボタンを押してください"></textarea>
+</div>
+<div>
+<input type="button" onclick="run()" value="置換" />
+</div>
+
+<div>
+<textarea id="b" rows="12" cols="80" placeholder="ここに結果が出力されます"></textarea>
+</div>
+
+</body>
+</html>
