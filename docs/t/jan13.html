@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>JAN13</title>
+<style>
+input, textarea {
+    font-size: x-large;
+}
+</style>
+<script>
+
+const DIGITS = "0123456789";
+
+function generate(code) {
+    while (code.length < 12) {
+        code += DIGITS[~~(Math.random() * DIGITS.length)];
+    }
+    /*
+      1. チェックデジットとそれ以外の１２桁の数字を切り出す
+      2. 切り出した１２桁の奇数桁の数字の和の３倍をする
+      3. 切り出した１２桁の偶数桁の数字の和を算出する
+      4. 2.と3.の和を算出する
+      5. １０と4.の１桁目の数字の差を算出する
+      6. 5.がチェックデジットとなる。
+    */
+    
+    let wa = 0;
+    for (let i = 0; i < 12; i++) {
+        if (i % 2 === 1) wa += parseInt(code[i]) * 3;
+        else wa += parseInt(code[i]);
+    }
+    const checkDigit = DIGITS[ (10 - wa % 10) % 10 ];
+    return code + checkDigit;
+}
+    
+function run() {
+    
+    const p = document.querySelector("#prefix").value;
+    
+    document.querySelector("#len").textContent = p.length;
+    
+    let s = "";
+    for (let i = 0; i < 10; i++) {
+        s += generate(p) + "\n";
+    }
+    document.querySelector("#b").value = s;
+}
+
+
+</script>
+</head>
+<body>
+
+
+<div>
+<p>生成されるJANコードの先頭nケタを入力<p>
+<input type="text" id="prefix" onKeyUp="run()" value="12345678"></input>(文字数=<span id="len">8</span>/13）
+<input type="button" value="push" onClick="run()"></input>
+</div>
+
+<div>
+<textarea id="b" rows="11" cols="40" spellcheck="false" placeholder="ここに結果が出力されます"></textarea>
+</div>
+
+</body>
+</html>
