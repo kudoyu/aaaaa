@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8">
+    <title>💊</title>
+    <style>
+      body {
+        background-color: #ccccff;
+      }
+      .touhaba {
+        font-size: large;
+        font-family: 'Consolas', 'monospace';
+      }
+      .panel {
+        width: 600px;
+        border: 1px black solid;
+      }
+      textarea {
+        margin: 5px;
+        padding: 5px;
+      }
+      #flex-container {
+        display: flex;
+        flex-direction: row;
+      }
+      #flex-container > .flex-item {
+        border: 1px black solid;
+        flex: 1 1;
+      }
+    </style>
+    <script>
+    function clearIt(){
+      document.getElementById('b').value = '';
+    }
+
+    function handleOnClick(){
+      let text = document.getElementById('a').value;
+      const lines = text.split('\n')
+        .map((s) => s.trim())
+        .map((s) => s.replace(/\s+/g, ' '))
+        .map((s) => s.toLowerCase())
+        .filter((s) => !!s);
+
+      const result = {
+        tableName: undefined,
+        columns: [],
+        primaryColumn: [],
+      };
+
+      lines.forEach((line) => {
+        if (line.startsWith("create table")) {
+          result.tableName = line.match(/create table ([\w_]+)/)[1];
+          return;
+        }
+        if (line.match(/comment ['"]/)) {
+          const reg = /([\w_]+)\s+([\w\d\(\)_]+)/;
+          const m = line.match(reg);
+          const nullable = !line.match(/not null/);
+          const column = {
+            name: m[1],
+            type: m[2],
+            nullable: nullable,
+          };
+          result.columns.push(column);
+          return;
+        }
+        if (line.startsWith("primary key")) {
+          const t = line.match(/primary key\s*\(([\w_, ]+)\)/)[1]
+            .split(",")
+            .map((s) => s.trim());
+          result.primaryColumn = t;
+          return;
+        }
+      });
+
+      // console.log(JSON.stringify(result));
+
+      document.getElementById('b').value = generate(result);
+    }
+
+
+    function generate(result) {
+      const ss = [];
+
+      const baseName = `${capitalize(snakeToCamel(result.tableName))}`;
+      const className = `${baseName}TableRecord`;
+      const className2 = `${baseName}InfraItems`;
+
+      ss.push('@Entity(immutable = true)');
+      if (result.tableName) { ss.push(`@Table(name = "${result.tableName}")`); }
+      ss.push(`class ${className}(`);
+
+      result.columns.forEach(({name, type, nullable}) => {
+        if (result.primaryColumn.includes(name)) { ss.push("  @Id"); }
+        ss.push(`  @Column(name = "${name}")`);
+        if (name === "version") { ss.push("  @Version"); }
+        ss.push(`  val ${snakeToCamel(name)}: ${toKClass(type, nullable)},`);
+        ss.push(``);
+
+      });
+
+      ss.push(`) {`);
+      ss.push(``);
+      ss.push(`  companion object {`);
+      ss.push(`    fun from(${baseName}: ${className2}): ${className} {`);
+      ss.push(`      val now = DateTimeUtil.now()`);
+      ss.push(`      return ${className}(`);
+
+      result.columns.forEach(({name, type, nullable}) => {
+        if (name === "create_time" || name === "update_time") {
+          ss.push(`        ${snakeToCamel(name)} = now`);
+        } else if (name === "version") {
+          ss.push(`        ${snakeToCamel(name)} = 1`);
+        } else {
+          ss.push(`        ${snakeToCamel(name)} = ${baseName}.${snakeToCamel(name)}`);
+        }
+      });
+      ss.push(`      }`);
+      ss.push(`    }`);
+      ss.push(`  }`);
+      ss.push(``);
+      ss.push(``);
+      ss.push(`  fun getInfraItems(): ${className2} = ${className2}(`);
+      result.columns.forEach(({name, type, nullable}) => {
+        if (name === "create_time" || name === "update_time" || name === "version") return;
+        ss.push(`    ${snakeToCamel(name)} = ${snakeToCamel(name)}`);
+      });
+      ss.push(`  )`);
+
+      ss.push(``);
+      ss.push(``);
+      ss.push(`  /** エンティティを元に、既存のレコードを更新する */`);
+      ss.push(`  fun update(${baseName}: ${className2}): ${className} {`);
+      ss.push(`    return ${className}(`);
+
+      result.columns.forEach(({name, type, nullable}) => {
+               if (name === "create_time") {  ss.push(`      ${snakeToCamel(name)} = this.createTime`);
+        } else if (name === "update_time") {  ss.push(`      ${snakeToCamel(name)} = DateTimeUtil.now()`);
+        } else if (name === "version") {      ss.push(`      ${snakeToCamel(name)} = this.version`);
+        } else {                              ss.push(`      ${snakeToCamel(name)} = ${baseName}.${snakeToCamel(name)}`);
+        }
+      });
+      ss.push(`    }`);
+      ss.push(`  }`);
+
+      ss.push(`}`);
+      return ss.join("\n");
+    }
+
+    function capitalize(s) {
+      return s.charAt(0).toUpperCase() + s.slice(1);
+    }
+    function toKClass(type, nullable) {
+      let res;
+      if (type.startsWith("varchar")) { res = "String"; }
+      if (type.startsWith("enum"))    { res = "String"; }
+      if (type.startsWith("text"))    { res = "String"; }
+      if (type.startsWith("tinyint")) { res = "Boolean"; }
+      if (type.startsWith("boolean")) { res = "Boolean"; }
+      if (type.startsWith("int"))     { res = "Int"; }
+      if (type.startsWith("bigint"))  { res = "Long"; }
+      if (type.startsWith("decimal")) { res = "BigDecimal"; }
+      if (type.startsWith("date"))    { res = "LocalDate"; }　// 順番注意
+      if (type.startsWith("datetime")){ res = "LocalDateTime"; } // 順番注意
+      return `${res}${nullable ? "?":""}`
+    }
+    function snakeToCamel(str) {
+      return str.replace(/([-_][a-z])/g,
+        (group) => group.toUpperCase()
+                        .replace('-', '')
+                        .replace('_', ''));
+    }
+    </script>
+  </head>
+  <body>
+    <div>
+      <textarea id="a" class="touhaba" rows="12" cols="200" onkeydown="clearIt()">
+CREATE TABLE sample (
+  id varchar(36) NOT NULL UNIQUE COMMENT 'ID',
+  title varchar(30) NOT NULL UNIQUE COMMENT 'タイトル',
+  deadline date NOT NULL COMMENT '締め切り',
+  status tinyint(1) NOT NULL DEFAULT '0' COMMENT 'ステータス',
+  create_time datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '作成日時',
+  update_time datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '更新日時',
+  PRIMARY KEY (id)
+)
+COMMENT='サンプルテーブル'
+
+      </textarea>
+    </div>
+    <div>
+      <p>DDLを食わせると対応するKotlinクラスを吐く。某案件用のやつ</p>
+      <div class="panel">
+        <div id="flex-container">
+          <div class="flex-item">
+          </div>
+          <div class="flex-item">
+            <input type="button" onclick="handleOnClick()" value="GO"></input>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div>
+      <textarea id="b" class="touhaba" rows="18" cols="200" ></textarea>
+    </div>
+  </body>
+</html>
