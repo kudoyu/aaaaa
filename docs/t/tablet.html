@@ -42,7 +42,7 @@
         .filter((s) => !!s);
 
       const result = {
-        tableName: undefined,
+        tableName: "xxxxxx",
         columns: [],
         primaryColumn: [],
       };
@@ -147,6 +147,35 @@
       return ss.join("\n");
     }
 
+    function handleOnClick2(){
+      let text = document.getElementById('a').value;
+      const lines = text.split('\n')
+        .map((s) => s.trim())
+        .map((s) => s.replace(/\s+/g, ' '))
+        .filter((s) => !!s);
+
+      const ss = [];
+      lines.forEach((line) => {
+        if (line.startsWith("val")) {
+          console.log(line);
+          const m = line.match(/val (\w+)\s*:\s*([\w\?]+),/);
+          if (m) {
+            const name = m[1];
+            let type = m[2];
+            let nullable = false;
+            if (type.endsWith("?")) { type = type.substring(0, type.length - 1); nullable = true; }
+            ss.push(`${pad(camelToSnake(name))} ${pad(toMysqlClass(type))} ${nullable?"   ":"NOT"} NULL COMMENT '',`);
+            return;
+          }
+        }
+      });
+      document.getElementById('b').value = ss.join("\n");
+    }
+    function pad(s, n) {
+      if (n === undefined) n = 16;
+      while (s.length < n) s += " ";
+      return s
+    }
     function capitalize(s) {
       return s.charAt(0).toUpperCase() + s.slice(1);
     }
@@ -170,6 +199,19 @@
                         .replace('-', '')
                         .replace('_', ''));
     }
+    function camelToSnake(str) {
+      return str.replace(/([A-Z])/g, (group) => '_' + group.toLowerCase());
+    }
+    function toMysqlClass(type) {
+      let res = "xxxx";
+      if (type.startsWith("String"))        { res = "varchar(xx)"; }
+      if (type.startsWith("Int"))           { res = "int"; }
+      if (type.startsWith("LocalDate"))     { res = "date"; }
+      if (type.startsWith("LocalDateTime")) { res = "datetime"; }
+      if (type.startsWith("BigDecimal"))    { res = "decimal"; }
+      if (type.startsWith("Boolean"))       { res = "boolean"; }
+      return res;
+    }
     </script>
   </head>
   <body>
@@ -185,7 +227,6 @@ CREATE TABLE sample (
   PRIMARY KEY (id)
 )
 COMMENT='サンプルテーブル'
-
       </textarea>
     </div>
     <div>
@@ -195,7 +236,8 @@ COMMENT='サンプルテーブル'
           <div class="flex-item">
           </div>
           <div class="flex-item">
-            <input type="button" onclick="handleOnClick()" value="GO"></input>
+            <input type="button" onclick="handleOnClick()" value="DDLからクラス（適当）"></input>
+            <input type="button" onclick="handleOnClick2()" value="逆に（もっと適当）"></input>
           </div>
         </div>
       </div>
