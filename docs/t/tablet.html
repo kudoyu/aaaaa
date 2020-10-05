@@ -102,7 +102,7 @@
       ss.push(`) {`);
       ss.push(``);
       ss.push(`  companion object {`);
-      ss.push(`    fun from(${baseName}: ${className2}): ${className} {`);
+      ss.push(`    fun from(${uncapital(baseName)}: ${className2}): ${className} {`);
       ss.push(`      val now = DateTimeUtil.now()`);
       ss.push(`      return ${className}(`);
 
@@ -112,7 +112,7 @@
         } else if (name === "version") {
           ss.push(`        ${snakeToCamel(name)} = 1`);
         } else {
-          ss.push(`        ${snakeToCamel(name)} = ${baseName}.${snakeToCamel(name)}`);
+          ss.push(`        ${snakeToCamel(name)} = ${uncapital(baseName)}.${snakeToCamel(name)}`);
         }
       });
       ss.push(`      }`);
@@ -130,14 +130,14 @@
       ss.push(``);
       ss.push(``);
       ss.push(`  /** エンティティを元に、既存のレコードを更新する */`);
-      ss.push(`  fun update(${baseName}: ${className2}): ${className} {`);
+      ss.push(`  fun update(${uncapital(baseName)}: ${className2}): ${className} {`);
       ss.push(`    return ${className}(`);
 
       result.columns.forEach(({name, type, nullable}) => {
                if (name === "create_time") {  ss.push(`      ${snakeToCamel(name)} = this.createTime`);
         } else if (name === "update_time") {  ss.push(`      ${snakeToCamel(name)} = DateTimeUtil.now()`);
         } else if (name === "version") {      ss.push(`      ${snakeToCamel(name)} = this.version`);
-        } else {                              ss.push(`      ${snakeToCamel(name)} = ${baseName}.${snakeToCamel(name)}`);
+        } else {                              ss.push(`      ${snakeToCamel(name)} = ${uncapital(baseName)}.${snakeToCamel(name)}`);
         }
       });
       ss.push(`    }`);
@@ -178,6 +178,9 @@
     }
     function capitalize(s) {
       return s.charAt(0).toUpperCase() + s.slice(1);
+    }
+    function uncapital(s) {
+      return s.charAt(0).toLowerCase() + s.slice(1);
     }
     function toKClass(type, nullable) {
       let res;
