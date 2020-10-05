@@ -90,11 +90,12 @@
       if (result.tableName) { ss.push(`@Table(name = "${result.tableName}")`); }
       ss.push(`class ${className}(`);
 
-      result.columns.forEach(({name, type, nullable}) => {
+      result.columns.forEach(({name, type, nullable}, idx, array) => {
+        const comma = idx < array.length - 1 ? ",":"";
         if (result.primaryColumn.includes(name)) { ss.push("  @Id"); }
         ss.push(`  @Column(name = "${name}")`);
         if (name === "version") { ss.push("  @Version"); }
-        ss.push(`  val ${snakeToCamel(name)}: ${toKClass(type, nullable)},`);
+        ss.push(`  val ${snakeToCamel(name)}: ${toKClass(type, nullable)}${comma}`);
         ss.push(``);
 
       });
@@ -106,24 +107,25 @@
       ss.push(`      val now = DateTimeUtil.now()`);
       ss.push(`      return ${className}(`);
 
-      result.columns.forEach(({name, type, nullable}) => {
+      result.columns.forEach(({name, type, nullable}, idx, array) => {
+        const comma = idx < array.length - 1 ? ",":"";
         if (name === "create_time" || name === "update_time") {
-          ss.push(`        ${snakeToCamel(name)} = now`);
+          ss.push(`        ${snakeToCamel(name)} = now${comma}`);
         } else if (name === "version") {
-          ss.push(`        ${snakeToCamel(name)} = 1`);
+          ss.push(`        ${snakeToCamel(name)} = 1${comma}`);
         } else {
-          ss.push(`        ${snakeToCamel(name)} = ${uncapital(baseName)}.${snakeToCamel(name)}`);
+          ss.push(`        ${snakeToCamel(name)} = ${uncapital(baseName)}.${snakeToCamel(name)}${comma}`);
         }
       });
-      ss.push(`      }`);
+      ss.push(`      )`);
       ss.push(`    }`);
       ss.push(`  }`);
       ss.push(``);
       ss.push(``);
       ss.push(`  fun getInfraItems(): ${className2} = ${className2}(`);
-      result.columns.forEach(({name, type, nullable}) => {
+      result.columns.forEach(({name, type, nullable}, idx, array) => {
         if (name === "create_time" || name === "update_time" || name === "version") return;
-        ss.push(`    ${snakeToCamel(name)} = ${snakeToCamel(name)}`);
+        ss.push(`    ${snakeToCamel(name)} = ${snakeToCamel(name)},`);
       });
       ss.push(`  )`);
 
@@ -133,14 +135,15 @@
       ss.push(`  fun update(${uncapital(baseName)}: ${className2}): ${className} {`);
       ss.push(`    return ${className}(`);
 
-      result.columns.forEach(({name, type, nullable}) => {
-               if (name === "create_time") {  ss.push(`      ${snakeToCamel(name)} = this.createTime`);
-        } else if (name === "update_time") {  ss.push(`      ${snakeToCamel(name)} = DateTimeUtil.now()`);
-        } else if (name === "version") {      ss.push(`      ${snakeToCamel(name)} = this.version`);
-        } else {                              ss.push(`      ${snakeToCamel(name)} = ${uncapital(baseName)}.${snakeToCamel(name)}`);
+      result.columns.forEach(({name, type, nullable}, idx, array) => {
+         const comma = idx < array.length - 1 ? ",":"";
+               if (name === "create_time") {  ss.push(`      ${snakeToCamel(name)} = this.createTime${comma}`);
+        } else if (name === "update_time") {  ss.push(`      ${snakeToCamel(name)} = DateTimeUtil.now()${comma}`);
+        } else if (name === "version") {      ss.push(`      ${snakeToCamel(name)} = this.version${comma}`);
+        } else {                              ss.push(`      ${snakeToCamel(name)} = ${uncapital(baseName)}.${snakeToCamel(name)}${comma}`);
         }
       });
-      ss.push(`    }`);
+      ss.push(`    )`);
       ss.push(`  }`);
 
       ss.push(`}`);
