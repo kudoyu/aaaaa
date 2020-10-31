@@ -190,6 +190,7 @@
       if (type.startsWith("varchar")) { res = "String"; }
       if (type.startsWith("enum"))    { res = "String"; }
       if (type.startsWith("text"))    { res = "String"; }
+      if (type.startsWith("bit"))     { res = "Boolean"; }
       if (type.startsWith("tinyint")) { res = "Boolean"; }
       if (type.startsWith("boolean")) { res = "Boolean"; }
       if (type.startsWith("int"))     { res = "Int"; }
@@ -215,7 +216,7 @@
       if (type.startsWith("LocalDate"))     { res = "date"; }
       if (type.startsWith("LocalDateTime")) { res = "datetime"; }
       if (type.startsWith("BigDecimal"))    { res = "decimal"; }
-      if (type.startsWith("Boolean"))       { res = "boolean"; }
+      if (type.startsWith("Boolean"))       { res = "bit(1)"; }
       return res;
     }
     </script>
