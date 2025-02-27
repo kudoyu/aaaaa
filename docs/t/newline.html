@@ -4,15 +4,16 @@
 <meta charset="utf-8">
 <script>
 function run(){
-	var input_str = document.querySelector("#a").value;
-  var s = input_str.replace(/\\r\\n|\\r|\\n/g, "\n");
-	document.querySelector("#b").value = s;
+  var s = document.querySelector("#a").value;
+  s = s.replace(/\\r\\n|\\r|\\n/g, "\n");
+  s = s.replace(/\\t/g, "\t");
+  document.querySelector("#b").value = s;
 }
 </script>
 </head>
 <body>
 <p>
-エスケープされた改行文字を元に戻します。
+エスケープされた改行文字を元に戻します。\tもタブにします。
 </p>
 <div>
 <textarea id="a" rows="12" cols="80" placeholder="ここに入力してボタンを押してください"></textarea>
