@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unicodeエスケープ デコーダー</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            padding: 30px;
+            max-width: 800px;
+            width: 100%;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+            text-align: center;
+            font-size: 24px;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 500;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 150px;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            resize: vertical;
+            transition: border-color 0.3s;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .output-group {
+            margin-top: 20px;
+        }
+
+        .output {
+            background: #f5f5f5;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 12px;
+            min-height: 100px;
+            font-size: 16px;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .error {
+            background: #fee;
+            border-color: #fcc;
+            color: #c33;
+        }
+
+        .example {
+            margin-top: 15px;
+            padding: 10px;
+            background: #f0f0f0;
+            border-radius: 6px;
+            font-size: 12px;
+            color: #666;
+        }
+
+        .example code {
+            background: #fff;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔤 Unicodeエスケープ デコーダー</h1>
+        
+        <div class="input-group">
+            <label for="input">Unicodeエスケープ文字列を入力:</label>
+            <textarea id="input" placeholder="例: \u6697\u8A3C\u756A\u53F7\u306E\u30A2\u30AF\u30BB\u30B9\u30C8\u30FC\u30AF\u30F3\u306E\u6709\u52B9\u671F\u9650\u304C\u5207\u308C\u3066\u3044\u307E\u3059\u3002"></textarea>
+        </div>
+
+        <button onclick="decode()">デコード実行</button>
+
+        <div class="output-group">
+            <label for="output">結果:</label>
+            <div id="output" class="output">結果がここに表示されます...</div>
+        </div>
+
+        <div class="example">
+            <strong>使用例:</strong> JavaのpropertiesファイルからコピーしたUnicodeエスケープ文字列を貼り付けて、デコードボタンをクリックしてください。
+        </div>
+    </div>
+
+    <script>
+        function decode() {
+            const input = document.getElementById('input').value;
+            const output = document.getElementById('output');
+            
+            if (!input.trim()) {
+                output.textContent = '入力が空です。';
+                output.classList.add('error');
+                return;
+            }
+
+            try {
+                // Unicodeエスケープをデコード
+                // JSON.parseを使う方法（推奨）
+                const decoded = JSON.parse('"' + input.replace(/"/g, '\\"') + '"');
+                output.textContent = decoded;
+                output.classList.remove('error');
+            } catch (e) {
+                // JSON.parseが失敗した場合、正規表現で直接変換を試みる
+                try {
+                    const decoded = input.replace(/\\u([0-9a-fA-F]{4})/g, (match, hex) => {
+                        return String.fromCharCode(parseInt(hex, 16));
+                    });
+                    output.textContent = decoded;
+                    output.classList.remove('error');
+                } catch (e2) {
+                    output.textContent = 'エラー: デコードに失敗しました。\n' + e2.message;
+                    output.classList.add('error');
+                }
+            }
+        }
+
+        // Enterキーで実行（Ctrl+Enter）
+        document.getElementById('input').addEventListener('keydown', function(e) {
+            if (e.ctrlKey && e.key === 'Enter') {
+                decode();
+            }
+        });
+    </script>
+</body>
+</html>
