@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UUIDv7 日時デコーダー</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            max-width: 800px;
+            width: 100%;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+            text-align: center;
+            font-size: 2em;
+        }
+
+        .input-section {
+            margin-bottom: 30px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 10px;
+            color: #555;
+            font-weight: 600;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 15px;
+            font-size: 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            transition: border-color 0.3s;
+            font-family: 'Courier New', monospace;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .result-section {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+
+        .result-item {
+            margin-bottom: 15px;
+        }
+
+        .result-label {
+            font-weight: 600;
+            color: #555;
+            margin-bottom: 5px;
+            display: block;
+        }
+
+        .result-value {
+            font-size: 18px;
+            color: #333;
+            font-family: 'Courier New', monospace;
+        }
+
+        .error {
+            color: #e74c3c;
+            padding: 15px;
+            background: #fee;
+            border-radius: 8px;
+            border-left: 4px solid #e74c3c;
+            margin-top: 20px;
+        }
+
+        .spec-section {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            max-width: 800px;
+            width: 100%;
+            margin-top: 20px;
+        }
+
+        .spec-section h2 {
+            color: #333;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .spec-section h3 {
+            color: #555;
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }
+
+        .spec-section p {
+            color: #666;
+            line-height: 1.8;
+            margin-bottom: 15px;
+        }
+
+        .spec-section code {
+            background: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            color: #e83e8c;
+        }
+
+        .spec-section ul {
+            margin-left: 20px;
+            color: #666;
+            line-height: 1.8;
+        }
+
+        .spec-section li {
+            margin-bottom: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 UUIDv7 日時デコーダー</h1>
+        
+        <div class="input-section">
+            <label for="uuid-input">UUIDv7 を入力してください：</label>
+            <input 
+                type="text" 
+                id="uuid-input" 
+                placeholder="例: 018422b2-4843-7a62-935b-b4e65649de3e"
+                autocomplete="off"
+            >
+        </div>
+
+        <div id="result-container"></div>
+    </div>
+
+    <div class="spec-section">
+        <h2>UUIDv7 仕様について</h2>
+        
+        <h3>概要</h3>
+        <p>
+            UUIDv7は、RFC 9562で定義されているタイムスタンプベースのUUIDバージョンです。
+            先頭部分が時刻をもとに作成されるため、時系列ソート可能な特性を持ちます。
+        </p>
+
+        <h3>データ構造</h3>
+        <p>
+            UUIDv7は128ビット（16バイト）で構成され、以下のような構造を持ちます：
+        </p>
+        <ul>
+            <li><strong>unix_ts_ms</strong>（48ビット = 16進数12桁）：ミリ秒単位のUNIXタイムスタンプ</li>
+            <li><strong>ver</strong>（4ビット）：バージョン情報（v7は「7」= 0x7）</li>
+            <li><strong>rand_a</strong>（12ビット）：乱数</li>
+            <li><strong>var</strong>（2ビット）：バリアント情報（通常は0x2）</li>
+            <li><strong>rand_b</strong>（62ビット）：乱数</li>
+        </ul>
+
+        <h3>フォーマット</h3>
+        <p>
+            標準的なUUIDフォーマット（8-4-4-4-12）で表現されます：
+        </p>
+        <p>
+            <code>xxxxxxxx-xxxx-7xxx-xxxx-xxxxxxxxxxxx</code>
+        </p>
+        <p>
+            ここで、最初の12文字（ハイフンを除く）がミリ秒単位のUNIXタイムスタンプを表します。
+        </p>
+
+        <h3>日時デコード方法</h3>
+        <p>
+            UUIDv7から日時を取得するには：
+        </p>
+        <ol style="margin-left: 20px; color: #666; line-height: 1.8;">
+            <li>ハイフンを除いた先頭12文字を取得</li>
+            <li>16進数を10進数に変換してミリ秒タイムスタンプを取得</li>
+            <li>JavaScriptの<code>Date</code>オブジェクトで日時に変換</li>
+        </ol>
+
+        <h3>特徴</h3>
+        <ul>
+            <li>時系列ソート可能：タイムスタンプベースのため、生成順序が保持される</li>
+            <li>ミリ秒精度：タイムスタンプはミリ秒単位で記録される</li>
+            <li>一意性：ランダム部分により、同一ミリ秒内でも一意性が保証される</li>
+            <li>データベース効率：時系列インデックスとして効率的に使用できる（MySQLのBツリーインデックスにおいて新しいデータが端に挿入されることが多いためフラグメンテーションが起きにくく性能が出やすい。一方、Firestore など分散DBではキーとして使うのは相性が悪いことがある）</li>
+        </ul>
+
+        <h3>参考資料</h3>
+        <p>
+            RFC 9562: UUID Version 7
+        </p>
+    </div>
+
+    <script>
+        const uuidInput = document.getElementById('uuid-input');
+        const resultContainer = document.getElementById('result-container');
+
+        function decodeUUIDv7(uuid) {
+            // ハイフンを除去
+            const uuidWithoutHyphens = uuid.replace(/-/g, '');
+            
+            // UUIDv7の形式チェック（128ビット = 32文字の16進数）
+            if (uuidWithoutHyphens.length !== 32) {
+                throw new Error('UUIDの長さが正しくありません（32文字の16進数である必要があります）');
+            }
+
+            // 16進数の形式チェック
+            if (!/^[0-9a-fA-F]{32}$/.test(uuidWithoutHyphens)) {
+                throw new Error('UUIDは16進数のみで構成されている必要があります');
+            }
+
+            // 先頭12文字（48ビット）を取得
+            const timestampHex = uuidWithoutHyphens.substring(0, 12);
+            
+            // 16進数を10進数に変換（ミリ秒タイムスタンプ）
+            const timestampMs = parseInt(timestampHex, 16);
+            
+            // 日時オブジェクトを作成
+            const date = new Date(timestampMs);
+            
+            // バージョン情報を確認（13文字目が7であることを確認）
+            const versionChar = uuidWithoutHyphens.charAt(12);
+            const version = parseInt(versionChar, 16);
+            
+            // if (version !== 7) {
+            //    throw new Error(`UUIDv7ではありません（バージョン: ${version}）。バージョン7である必要があります。`);
+            //}
+
+            return {
+                timestampMs: timestampMs,
+                date: date,
+                timestampHex: timestampHex,
+                version: version
+            };
+        }
+
+        function formatDate(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            const seconds = String(date.getSeconds()).padStart(2, '0');
+            const milliseconds = String(date.getMilliseconds()).padStart(3, '0');
+            
+            return {
+                dateTime: `${year}-${month}-${day} ${hours}:${minutes}:${seconds}.${milliseconds}`,
+                iso: date.toISOString(),
+                unix: Math.floor(date.getTime() / 1000)
+            };
+        }
+
+        function displayResult(result) {
+            const formatted = formatDate(result.date);
+            
+            resultContainer.innerHTML = `
+                <div class="result-section">
+                    <div class="result-item">
+                        <span class="result-label">日時（ローカル）:</span>
+                        <div class="result-value">${formatted.dateTime}</div>
+                    </div>
+                    <div class="result-item">
+                        <span class="result-label">日時（ISO 8601）:</span>
+                        <div class="result-value">${formatted.iso}</div>
+                    </div>
+                    <div class="result-item">
+                        <span class="result-label">UNIXタイムスタンプ（秒）:</span>
+                        <div class="result-value">${formatted.unix}</div>
+                    </div>
+                    <div class="result-item">
+                        <span class="result-label">ミリ秒タイムスタンプ:</span>
+                        <div class="result-value">${result.timestampMs}</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function displayError(message) {
+            resultContainer.innerHTML = `
+                <div class="error">
+                    <strong>エラー:</strong> ${message}
+                </div>
+            `;
+        }
+
+        function handleInput() {
+            const input = uuidInput.value.trim();
+            
+            if (input === '') {
+                resultContainer.innerHTML = '';
+                return;
+            }
+
+            try {
+                const result = decodeUUIDv7(input);
+                displayResult(result);
+            } catch (error) {
+                displayError(error.message);
+            }
+        }
+
+        // 入力イベントリスナー
+        uuidInput.addEventListener('input', handleInput);
+        uuidInput.addEventListener('paste', () => {
+            setTimeout(handleInput, 10);
+        });
+    </script>
+</body>
+</html>
